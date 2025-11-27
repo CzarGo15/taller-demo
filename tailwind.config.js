@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reglas especiales para impresión */
+@media print {
+  /* Forzar impresión de colores de fondo */
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Ocultar elementos de interfaz como botones y menús */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Asegurar que ciertos elementos se vean */
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:flex {
+    display: flex !important;
+  }
+
+  /* Configuración de la página física */
+  @page {
+    margin: 0.5cm;
+    size: letter portrait; /* Carta Vertical */
+  }
+  
+  /* Resetear estilos para evitar scroll o cortes */
+  .print-mode {
+    width: 100%;
+    max-width: 100%;
+    background: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 10pt;
+  }
+}
