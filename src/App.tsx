@@ -30,50 +30,44 @@ import {
   PenTool
 } from 'lucide-react';
 
-// --- CONFIGURACIÓN DE FIREBASE ---
-
-// 1. Declaración de variables globales del entorno de prueba
+// --- VARIABLES GLOBALES DEL ENTORNO (Para que funcione la vista previa) ---
 declare const __firebase_config: string;
 declare const __app_id: string;
 declare const __initial_auth_token: string;
 
-// 2. Lógica Híbrida:
-//    - Si estamos en la vista previa, usa __firebase_config.
-//    - Si estamos en tu computadora/GitHub, usa tus claves manuales.
+// --- CONFIGURACIÓN HÍBRIDA ---
+let firebaseConfig: any;
+let collectionRefBuilder: any; 
 
-let firebaseConfig;
-let appIdStr = 'default-app-id';
+// Detectamos si estamos en la Vista Previa del Chat o en tu Proyecto Real
+if (typeof __firebase_config !== 'undefined') {
+  // 1. ENTORNO VISTA PREVIA (Chat)
+  firebaseConfig = JSON.parse(__firebase_config);
+  const internalAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-id';
+  
+  collectionRefBuilder = (dbInstance: any) => 
+    collection(dbInstance, 'artifacts', internalAppId, 'public', 'data', 'taller_ordenes');
 
-try {
-  // Intenta cargar la configuración automática del entorno
-  if (typeof __firebase_config !== 'undefined') {
-    firebaseConfig = JSON.parse(__firebase_config);
-    appIdStr = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  } else {
-    // -----------------------------------------------------------
-    // PARA GITHUB / TU COMPUTADORA:
-    // Si __firebase_config no existe (al subirlo a GitHub), 
-    // el sistema usará estos datos. REEMPLÁZALOS con los reales.
-    // -----------------------------------------------------------
-    firebaseConfig = {
-      apiKey: "PEGA_AQUI_TU_API_KEY_REAL",
-      authDomain: "tu-proyecto.firebaseapp.com",
-      projectId: "tu-proyecto",
-      storageBucket: "tu-proyecto.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
-    };
-    appIdStr = "taller-arredondo-prod";
-  }
-} catch (e) {
-  console.error("Error cargando configuración", e);
+} else {
+  // 2. TU ENTORNO REAL (GitHub / Localhost)
+  firebaseConfig = {
+    apiKey: "AIzaSyC8gfIHJ1yrF0BYo8eIxcc-3YWHn3jjong",
+    authDomain: "desayunos-685c6.firebaseapp.com",
+    projectId: "desayunos-685c6",
+    storageBucket: "desayunos-685c6.firebasestorage.app",
+    messagingSenderId: "1019036287793",
+    appId: "1:1019036287793:web:125da6f4009275c491e610",
+    measurementId: "G-RCMS88889V"
+  };
+
+  collectionRefBuilder = (dbInstance: any) => 
+    collection(dbInstance, 'taller-arredondo-ordenes');
 }
 
-// Inicialización
+// Inicialización de Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = appIdStr;
 
 // --- TIPOS DE DATOS ---
 type InventoryItemState = 'si' | 'no' | 'mal';
@@ -113,8 +107,8 @@ interface ServiceOrder {
   inventory: Record<string, InventoryItemState>;
   
   // Daños
-  damages: { x: number; y: number; id: number }[]; // Siniestro (Rojo)
-  preexistingDamages: { x: number; y: number; id: number }[]; // Preexistentes (Amarillo)
+  damages: { x: number; y: number; id: number }[]; 
+  preexistingDamages: { x: number; y: number; id: number }[]; 
   
   // Observaciones
   damagesDescription: string;
@@ -125,7 +119,7 @@ interface ServiceOrder {
   clientAddress: string;
   clientPhone: string;
   clientEmail: string;
-  clientSignature?: string; // Imagen en base64
+  clientSignature?: string; 
 }
 
 // --- DATOS DEL FORMULARIO ---
@@ -163,19 +157,17 @@ export default function App() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // 1. Autenticación (Híbrida para soporte local y remoto)
+  // 1. Autenticación Robusta
   useEffect(() => {
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          // Autenticación especial para el entorno de prueba
           await signInWithCustomToken(auth, __initial_auth_token);
         } else {
-          // Autenticación estándar para GitHub/Producción
           await signInAnonymously(auth);
         }
       } catch (error) {
-        console.error("Error en autenticación:", error);
+        console.error("Error al iniciar sesión:", error);
       }
     };
     initAuth();
@@ -183,33 +175,27 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Cargar Órdenes en Tiempo Real
+  // 2. Cargar Órdenes
   useEffect(() => {
     if (!user) return;
     
-    // Usamos 'public/data' para demo pública o 'users/{uid}' para privada.
-    // Para esta demo, usaremos una colección pública compartida para facilitar la prueba.
-    const collectionPath = typeof __firebase_config !== 'undefined' 
-      ? collection(db, 'artifacts', appId, 'public', 'data', 'orders') // Entorno de prueba
-      : collection(db, 'service_orders_app', appId, 'orders'); // Entorno producción
-
-    const q = query(
-      collectionPath,
-      orderBy('createdAt', 'desc')
-    );
+    const ordersCollection = collectionRefBuilder(db);
+    
+    const q = query(ordersCollection, orderBy('createdAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ServiceOrder));
+      // CORRECCIÓN AQUÍ: Agregamos 'as any' para calmar a TypeScript
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any } as ServiceOrder));
       setOrders(data);
     }, (error) => console.error("Error cargando órdenes:", error));
     
     return () => unsubscribe();
   }, [user]);
 
-  // Crear nueva orden vacía
+  // Crear nueva orden
   const createNewOrder = () => {
     const newOrder: ServiceOrder = {
-      orderNumber: (orders.length + 4250).toString(), // Simulación de folio
+      orderNumber: (orders.length + 4250).toString(),
       status: 'active',
       createdAt: null,
       insurer: '', policy: '', insured: '', deductible: '', claimNumber: '',
@@ -231,21 +217,14 @@ export default function App() {
     if (!user || !currentOrder) return;
     
     try {
-      const collectionPath = typeof __firebase_config !== 'undefined' 
-        ? collection(db, 'artifacts', appId, 'public', 'data', 'orders') 
-        : collection(db, 'service_orders_app', appId, 'orders');
-      
-      const orderToSave = JSON.parse(JSON.stringify(currentOrder)); // Limpiar undefineds
+      const ordersCollection = collectionRefBuilder(db);
+      const orderToSave = JSON.parse(JSON.stringify(currentOrder));
 
       if (currentOrder.id) {
-        // Actualizar existente
-        // Nota: En producción esto sería doc(db, 'service_orders_app', ...).
-        // Aquí simplificamos la lógica de ruta para el ejemplo.
-        const docRef = doc(collectionPath, currentOrder.id);
+        const docRef = doc(ordersCollection, currentOrder.id);
         await updateDoc(docRef, { ...orderToSave });
       } else {
-        // Crear nueva
-        await addDoc(collectionPath, {
+        await addDoc(ordersCollection, {
           ...orderToSave,
           createdAt: serverTimestamp()
         });
@@ -254,11 +233,10 @@ export default function App() {
       setView('list');
     } catch (e) {
       console.error("Error al guardar:", e);
-      alert('Error al guardar. Verifica tu conexión.');
+      alert('Error al guardar. Verifica los permisos de tu base de datos.');
     }
   };
 
-  // Función de impresión
   const handlePrint = () => {
     setIsPrinting(true);
     setTimeout(() => {
@@ -267,7 +245,7 @@ export default function App() {
     }, 500);
   };
 
-  if (!user) return <div className="flex items-center justify-center h-screen">Conectando al sistema...</div>;
+  if (!user) return <div className="flex items-center justify-center h-screen font-bold text-xl text-blue-900">Conectando al taller...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-800">
