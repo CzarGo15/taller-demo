@@ -53,10 +53,9 @@ const globalAppId = typeof __app_id !== 'undefined' ? __app_id : undefined;
 const globalToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
 
 // --- CONFIGURACIÓN HÍBRIDA ---
-// @ts-ignore
-let firebaseConfig;
-// @ts-ignore
-let collectionRefBuilder; 
+// CORRECCIÓN: Definimos explícitamente el tipo 'any' para evitar errores TS7005
+let firebaseConfig: any;
+let collectionRefBuilder: any; 
 
 if (globalConfig) {
   // Entorno Chat
@@ -65,8 +64,7 @@ if (globalConfig) {
   } catch (e) { firebaseConfig = {}; }
   const internalAppId = globalAppId || 'default-id';
   
-  // @ts-ignore
-  collectionRefBuilder = (dbInstance) => 
+  collectionRefBuilder = (dbInstance: any) => 
     collection(dbInstance, 'artifacts', internalAppId, 'public', 'data', 'taller_ordenes');
 } else {
   // Entorno Producción - TUS LLAVES
@@ -79,8 +77,8 @@ if (globalConfig) {
     appId: "1:1019036287793:web:125da6f4009275c491e610",
     measurementId: "G-RCMS88889V"
   };
-  // @ts-ignore
-  collectionRefBuilder = (dbInstance) => 
+  
+  collectionRefBuilder = (dbInstance: any) => 
     collection(dbInstance, 'taller-arredondo-ordenes');
 }
 
@@ -114,7 +112,6 @@ function CarDiagram() { return (<div className="w-full h-full flex items-center 
 
 // --- APP PRINCIPAL ---
 export default function App() {
-  // CORRECCIÓN: Usamos <any> para permitir que 'user' reciba objetos de Firebase sin error
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -138,7 +135,6 @@ export default function App() {
       }
     };
     initAuth();
-    // Ahora setUser acepta el objeto usuario de Firebase sin errores
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
