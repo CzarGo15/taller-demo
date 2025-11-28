@@ -20,12 +20,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const COLLECTION_NAME = 'taller-arredondo-ordenes';
 
-// --- COMPONENTES ---
-const PrintStyles = () => (
-
-<style>{@media print { body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .print\\:hidden { display: none !important; } .print\\:block { display: block !important; } .print\\:flex { display: flex !important; } @page { margin: 0.5cm; size: letter portrait; } .print-mode { width: 100%; max-width: 100%; background: white; position: absolute; top: 0; left: 0; margin: 0; padding: 0; font-size: 10pt; } }}</style>
-
-);
+// --- COMPONENTES UI ---
 
 function InputRow({ label, value, onChange = () => {}, readOnly = false, fullWidth = false }) {
 return (
@@ -43,7 +38,8 @@ return (
 function BooleanCheck({ label, checked, onChange }) {
 return (
 <div className="flex items-center gap-1 cursor-pointer" onClick={() => onChange && onChange(!checked)}>
-<div className={w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}}>{checked && <div className="w-2 h-2 bg-blue-900" />}</div><span>{label}</span>
+<div className={w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}}>{checked && <div className="w-2 h-2 bg-blue-900" />}</div>
+<span>{label}</span>
 </div>
 );
 }
@@ -53,9 +49,9 @@ return (
 <div className="flex justify-between items-center px-1 border-b border-gray-100 h-5">
 <span className="truncate w-24">{label}</span>
 <div className="flex gap-0.5 print:hidden">
-<button onClick={() => onChange('si')} className={px-1 rounded ${value === 'si' ? 'bg-green-200 text-green-800 font-bold' : 'bg-gray-100 text-gray-400'}}>Si</button>
-<button onClick={() => onChange('no')} className={px-1 rounded ${value === 'no' ? 'bg-gray-200 text-gray-800 font-bold' : 'bg-gray-100 text-gray-400'}}>No</button>
-<button onClick={() => onChange('mal')} className={px-1 rounded ${value === 'mal' ? 'bg-red-200 text-red-800 font-bold' : 'bg-gray-100 text-gray-400'}}>M</button>
+<button onClick={() => onChange('si')} className={px-1 rounded ${value==='si'?'bg-green-200 text-green-800 font-bold': 'bg-gray-100 text-gray-400'}}>Si</button>
+<button onClick={() => onChange('no')} className={px-1 rounded ${value==='no'?'bg-gray-200 text-gray-800 font-bold': 'bg-gray-100 text-gray-400'}}>No</button>
+<button onClick={() => onChange('mal')} className={px-1 rounded ${value==='mal'?'bg-red-200 text-red-800 font-bold': 'bg-gray-100 text-gray-400'}}>M</button>
 </div>
 <div className="hidden print:block font-bold w-6 text-center border-l border-gray-200">{value === 'si' ? 'SI' : value === 'no' ? 'NO' : value === 'mal' ? 'M' : '-'}</div>
 </div>
@@ -77,35 +73,76 @@ return (<div onClick={toggle} className={cursor-pointer font-bold font-mono ${co
 function SignaturePad({ onSave }) {
 const canvasRef = useRef(null);
 const [hasSignature, setHasSignature] = useState(false);
-const startDrawing = (e) => {
+
+const getCoords = (e) => {
 const canvas = canvasRef.current;
-if (!canvas) return;
-const ctx = canvas.getContext('2d');
+if (!canvas) return { x: 0, y: 0 };
 const rect = canvas.getBoundingClientRect();
 const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
 const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-ctx.beginPath(); ctx.moveTo(x, y); setHasSignature(true);
+return { x, y };
 };
+
+const startDrawing = (e) => {
+const ctx = canvasRef.current?.getContext('2d');
+if (!ctx) return;
+const { x, y } = getCoords(e);
+ctx.beginPath();
+ctx.moveTo(x, y);
+setHasSignature(true);
+};
+
 const draw = (e) => {
 if (e.buttons !== 1 && e.type !== 'touchmove') return;
 const ctx = canvasRef.current?.getContext('2d');
 if (!ctx) return;
-const rect = canvasRef.current.getBoundingClientRect();
-const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-ctx.lineTo(x, y); ctx.stroke();
+const { x, y } = getCoords(e);
+ctx.lineTo(x, y);
+ctx.stroke();
 };
-const save = () => { if (canvasRef.current) onSave(canvasRef.current.toDataURL('image/png')); };
-const clear = () => { const ctx = canvasRef.current?.getContext('2d'); if (ctx) { ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); setHasSignature(false); } };
+
+const save = () => {
+if (canvasRef.current) onSave(canvasRef.current.toDataURL('image/png'));
+};
+
+const clear = () => {
+const ctx = canvasRef.current?.getContext('2d');
+if (ctx && canvasRef.current) {
+ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+setHasSignature(false);
+}
+};
+
 useEffect(() => {
 const canvas = canvasRef.current;
-if (canvas) { canvas.width = canvas.parentElement?.offsetWidth || 300; canvas.height = 96; const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; }
+if (canvas) {
+canvas.width = canvas.parentElement?.offsetWidth || 300;
+canvas.height = 96;
+const ctx = canvas.getContext('2d');
+if (ctx) { ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; }
+}
 }, []);
+
 return (
 <div className="w-full h-full relative group print:hidden bg-gray-50 border border-gray-200">
-{!hasSignature && <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none"><PenTool className="w-6 h-6 mb-1 opacity-50" /><span className="text-xs">Firmar Aquí</span></div>}
-<canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onTouchStart={startDrawing} onTouchMove={draw} className="w-full h-full cursor-crosshair touch-none" />
-{hasSignature && <div className="absolute top-0 right-0 flex gap-1 p-1"><button onClick={clear} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Trash2 className="w-4 h-4" /></button><button onClick={save} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200"><CheckCircle className="w-4 h-4" /></button></div>}
+{!hasSignature && (
+<div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none">
+<PenTool className="w-6 h-6 mb-1 opacity-50" />
+<span className="text-xs">Firmar Aquí</span>
+</div>
+)}
+<canvas
+ref={canvasRef}
+onMouseDown={startDrawing} onMouseMove={draw}
+onTouchStart={startDrawing} onTouchMove={draw}
+className="w-full h-full cursor-crosshair touch-none"
+/>
+{hasSignature && (
+<div className="absolute top-0 right-0 flex gap-1 p-1">
+<button onClick={clear} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Trash2 className="w-4 h-4" /></button>
+<button onClick={save} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200"><CheckCircle className="w-4 h-4" /></button>
+</div>
+)}
 </div>
 );
 }
@@ -178,11 +215,12 @@ setView('form');
 const saveOrder = async () => {
 if (!user || !currentOrder) return;
 try {
+const colRef = collection(db, COLLECTION_NAME);
 const dataToSave = JSON.parse(JSON.stringify(currentOrder));
 if (currentOrder.id) {
-await updateDoc(doc(db, COLLECTION_NAME, currentOrder.id), dataToSave);
+await updateDoc(doc(colRef, currentOrder.id), dataToSave);
 } else {
-await addDoc(collection(db, COLLECTION_NAME), { ...dataToSave, createdAt: serverTimestamp() });
+await addDoc(colRef, { ...dataToSave, createdAt: serverTimestamp() });
 }
 alert('Orden guardada!');
 setView('list');
@@ -201,11 +239,10 @@ const y = ((e.clientY - rect.top) / rect.height) * 100;
 setCurrentOrder(prev => ({ ...prev, [type]: [...(prev[type] || []), { x, y, id: Date.now() }] }));
 };
 
-if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Cargando sistema...</div>;
+if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Cargando...</div>;
 
 return (
 <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
-<PrintStyles />
 {view === 'list' && (
 <div className="p-6 max-w-5xl mx-auto">
 <div className="flex justify-between items-center mb-8">
@@ -216,7 +253,10 @@ return (
 {orders.length === 0 ? <div className="p-12 text-center text-gray-400">No hay órdenes registradas.</div> :
 <div className="divide-y divide-gray-100">{orders.map(o => (
 <div key={o.id} onClick={() => { setCurrentOrder(o); setView('form'); }} className="p-4 hover:bg-blue-50 cursor-pointer flex justify-between items-center">
-<div><div className="font-bold text-lg">{o.brand} {o.model} <span className="text-gray-400 text-sm">#{o.orderNumber}</span></div><div className="text-sm text-gray-500">{o.clientName} • {o.plates}</div></div>
+<div>
+<div className="font-bold text-lg">{o.brand} {o.model} <span className="text-gray-400 text-sm">#{o.orderNumber}</span></div>
+<div className="text-sm text-gray-500">{o.clientName} • {o.plates}</div>
+</div>
 <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-bold">{o.status === 'active' ? 'En Taller' : 'Entregado'}</span>
 </div>
 ))}</div>
