@@ -1,13 +1,13 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 
 const container = document.getElementById('root');
 
 if (container) {
-  const root = createRoot(container);
-  root.render(<App />);
+const root = ReactDOM.createRoot(container);
+root.render(<App />);
 } else {
-  console.error("No se encontró el elemento root");
+console.error("ERROR FATAL: No se encontró el elemento root en el HTML");
 }

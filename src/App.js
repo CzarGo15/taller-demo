@@ -1,27 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  onAuthStateChanged,
-  signInWithCustomToken
-} from 'firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  query, 
-  onSnapshot, 
-  orderBy, 
-  serverTimestamp,
-  doc,
-  updateDoc
-} from 'firebase/firestore';
-import { 
-  Save, Printer, Car, Plus, Search, CheckCircle, Trash2, Menu, X, PenTool 
-} from 'lucide-react';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { Save, Printer, Car, Plus, Search, CheckCircle, Trash2, Menu, X, PenTool } from 'lucide-react';
 
-// --- ESTILOS ---
+// --- CONFIGURACIÓN ---
+const firebaseConfig = {
+  apiKey: "AIzaSyC8gfIHJ1yrF0BYo8eIxcc-3YWHn3jjong",
+  authDomain: "desayunos-685c6.firebaseapp.com",
+  projectId: "desayunos-685c6",
+  storageBucket: "desayunos-685c6.firebasestorage.app",
+  messagingSenderId: "1019036287793",
+  appId: "1:1019036287793:web:125da6f4009275c491e610",
+  measurementId: "G-RCMS88889V"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const COLLECTION_NAME = 'taller-arredondo-ordenes';
+
+// --- COMPONENTES UI ---
 const PrintStyles = () => (
   <style>{`
     @media print {
@@ -35,53 +34,14 @@ const PrintStyles = () => (
   `}</style>
 );
 
-// --- CONFIGURACIÓN ---
-// Detectar variables globales de forma segura en JS
-const globalConfig = typeof window !== 'undefined' && window.__firebase_config ? JSON.parse(window.__firebase_config) : undefined;
-const globalAppId = typeof window !== 'undefined' && window.__app_id ? window.__app_id : undefined;
-const globalToken = typeof window !== 'undefined' && window.__initial_auth_token ? window.__initial_auth_token : undefined;
-
-let firebaseConfig;
-let collectionName;
-
-if (globalConfig) {
-  // Entorno Chat
-  firebaseConfig = globalConfig;
-  const internalAppId = globalAppId || 'default-id';
-  // Ruta especial para vista previa
-  collectionName = `artifacts/${internalAppId}/public/data/taller_ordenes`;
-} else {
-  // Entorno Producción (TUS LLAVES)
-  firebaseConfig = {
-    apiKey: "AIzaSyC8gfIHJ1yrF0BYo8eIxcc-3YWHn3jjong",
-    authDomain: "desayunos-685c6.firebaseapp.com",
-    projectId: "desayunos-685c6",
-    storageBucket: "desayunos-685c6.firebasestorage.app",
-    messagingSenderId: "1019036287793",
-    appId: "1:1019036287793:web:125da6f4009275c491e610",
-    measurementId: "G-RCMS88889V"
-  };
-  collectionName = 'taller-arredondo-ordenes';
-}
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// --- COMPONENTES ---
-
-function InputRow({ label, value, onChange, readOnly = false, fullWidth = false }) { 
+function InputRow({ label, value, onChange = () => {}, readOnly = false, fullWidth = false }) { 
   return (
     <div className={`flex items-center gap-1 ${fullWidth ? 'w-full' : ''}`}>
       <span className="font-bold text-gray-700 whitespace-nowrap">{label}:</span>
       {readOnly ? (
         <span className="border-b border-gray-300 px-1 flex-1 truncate">{value}</span>
       ) : (
-        <input 
-          className="border-b border-gray-300 px-1 outline-none focus:border-blue-500 bg-transparent flex-1 w-full"
-          value={value || ''} 
-          onChange={(e) => onChange && onChange(e.target.value)} 
-        />
+        <input className="border-b border-gray-300 px-1 outline-none focus:border-blue-500 bg-transparent flex-1 w-full" value={value || ''} onChange={(e) => onChange(e.target.value)} />
       )}
     </div>
   ); 
@@ -90,9 +50,7 @@ function InputRow({ label, value, onChange, readOnly = false, fullWidth = false 
 function BooleanCheck({ label, checked, onChange }) { 
   return (
     <div className="flex items-center gap-1 cursor-pointer" onClick={() => onChange && onChange(!checked)}>
-      <div className={`w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}`}>
-        {checked && <div className="w-2 h-2 bg-blue-900" />}
-      </div>
+      <div className={`w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}`}>{checked && <div className="w-2 h-2 bg-blue-900" />}</div>
       <span>{label}</span>
     </div>
   ); 
@@ -128,7 +86,6 @@ function SimpleStateToggle({ value, onChange }) {
 
 function SignaturePad({ onSave }) { 
   const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
   const getCoords = (e) => {
@@ -158,16 +115,10 @@ function SignaturePad({ onSave }) {
     ctx.stroke();
   };
 
-  const save = () => {
-    if (canvasRef.current) onSave(canvasRef.current.toDataURL('image/png'));
-  };
-
-  const clear = () => {
+  const save = () => { if (canvasRef.current) onSave(canvasRef.current.toDataURL('image/png')); };
+  const clear = () => { 
     const ctx = canvasRef.current?.getContext('2d');
-    if (ctx && canvasRef.current) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      setHasSignature(false);
-    }
+    if (ctx) { ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); setHasSignature(false); }
   };
 
   useEffect(() => {
@@ -182,24 +133,9 @@ function SignaturePad({ onSave }) {
 
   return (
     <div className="w-full h-full relative group print:hidden bg-gray-50 border border-gray-200">
-      {!hasSignature && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none">
-          <PenTool className="w-6 h-6 mb-1 opacity-50" />
-          <span className="text-xs">Firmar Aquí</span>
-        </div>
-      )}
-      <canvas 
-        ref={canvasRef} 
-        onMouseDown={startDrawing} onMouseMove={draw} 
-        onTouchStart={startDrawing} onTouchMove={draw}
-        className="w-full h-full cursor-crosshair touch-none"
-      />
-      {hasSignature && (
-        <div className="absolute top-0 right-0 flex gap-1 p-1">
-          <button onClick={clear} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Trash2 className="w-4 h-4" /></button>
-          <button onClick={save} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200"><CheckCircle className="w-4 h-4" /></button>
-        </div>
-      )}
+      {!hasSignature && <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none"><PenTool className="w-6 h-6 mb-1 opacity-50" /><span className="text-xs">Firmar Aquí</span></div>}
+      <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onTouchStart={startDrawing} onTouchMove={draw} className="w-full h-full cursor-crosshair touch-none" />
+      {hasSignature && <div className="absolute top-0 right-0 flex gap-1 p-1"><button onClick={clear} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Trash2 className="w-4 h-4" /></button><button onClick={save} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200"><CheckCircle className="w-4 h-4" /></button></div>}
     </div>
   ); 
 }
@@ -219,10 +155,7 @@ function CarDiagram() {
         <path d="M 200,50 L 250,50 L 250,150 L 200,150" fill="none" stroke="currentColor" strokeWidth="2" />
         <circle cx="225" cy="70" r="12" fill="none" stroke="currentColor" />
         <circle cx="225" cy="130" r="12" fill="none" stroke="currentColor" />
-        <text x="150" y="30" textAnchor="middle" fontSize="10">FRENTE</text>
-        <text x="150" y="180" textAnchor="middle" fontSize="10">ATRÁS</text>
-        <text x="30" y="100" textAnchor="middle" fontSize="10" transform="rotate(-90 30,100)">IZQ</text>
-        <text x="270" y="100" textAnchor="middle" fontSize="10" transform="rotate(90 270,100)">DER</text>
+        <text x="150" y="30" textAnchor="middle" fontSize="10">FRENTE</text><text x="150" y="180" textAnchor="middle" fontSize="10">ATRÁS</text><text x="30" y="100" textAnchor="middle" fontSize="10" transform="rotate(-90 30,100)">IZQ</text><text x="270" y="100" textAnchor="middle" fontSize="10" transform="rotate(90 270,100)">DER</text>
       </svg>
     </div>
   ); 
@@ -236,90 +169,51 @@ const INVENTORY_GROUPS = {
   llantas: ["Marca", "Vida Util %", "Rines", "Tapones"]
 };
 
-// --- APP PRINCIPAL ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [view, setView] = useState('list');
   const [isPrinting, setIsPrinting] = useState(false);
-  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (globalToken) {
-          await signInWithCustomToken(auth, globalToken);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error("Error Auth:", error);
-        setAuthError(error.message);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
+    signInAnonymously(auth).catch(console.error);
+    return onAuthStateChanged(auth, setUser);
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    
-    // Usar colección dinámica o fija
-    let colRef;
-    if (collectionName.startsWith('artifacts')) {
-       colRef = collection(db, ...collectionName.split('/'));
-    } else {
-       colRef = collection(db, collectionName);
-    }
-
-    const q = query(colRef, orderBy('createdAt', 'desc'));
+    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loadedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(loadedOrders);
-    }, (error) => {
-      console.error("Error datos:", error);
-      alert("Error leyendo datos: " + error.message);
-    });
-    
+      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => console.error("Error:", error));
     return () => unsubscribe();
   }, [user]);
 
   const createNewOrder = () => {
-    const newId = (orders.length + 4250).toString();
-    const emptyOrder = {
-      orderNumber: newId, status: 'active', createdAt: null, insurer: '', policy: '', insured: '', deductible: '', claimNumber: '',
+    setCurrentOrder({
+      orderNumber: (orders.length + 4250).toString(),
+      status: 'active', createdAt: null, insurer: '', policy: '', insured: '', deductible: '', claimNumber: '',
       brand: '', model: '', type: '', color: '', plates: '', vin: '', mileage: '', fuelLevel: 50,
       transmission: 'auto', ac: true, upholstery: 'tela', windows: 'electricos', steering: 'hidraulica', sunroof: false,
       inventory: {}, damages: [], preexistingDamages: [], damagesDescription: '', observations: '',
       clientName: '', clientAddress: '', clientPhone: '', clientEmail: '', clientSignature: ''
-    };
-    setCurrentOrder(emptyOrder);
+    });
     setView('form');
   };
 
   const saveOrder = async () => {
     if (!user || !currentOrder) return;
     try {
-      let colRef;
-      if (collectionName.startsWith('artifacts')) {
-         colRef = collection(db, ...collectionName.split('/'));
-      } else {
-         colRef = collection(db, collectionName);
-      }
-
       const dataToSave = JSON.parse(JSON.stringify(currentOrder));
       if (currentOrder.id) {
-        await updateDoc(doc(colRef, currentOrder.id), dataToSave);
+        await updateDoc(doc(db, COLLECTION_NAME, currentOrder.id), dataToSave);
       } else {
-        await addDoc(colRef, { ...dataToSave, createdAt: serverTimestamp() });
+        await addDoc(collection(db, COLLECTION_NAME), { ...dataToSave, createdAt: serverTimestamp() });
       }
-      alert('Orden guardada correctamente');
+      alert('Orden guardada!');
       setView('list');
-    } catch (e) {
-      alert('Error al guardar: ' + e.message);
-    }
+    } catch (e) { alert('Error: ' + e.message); }
   };
 
   const handlePrint = () => {
@@ -331,12 +225,10 @@ export default function App() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const list = currentOrder[type] || [];
-    setCurrentOrder({ ...currentOrder, [type]: [...list, { x, y, id: Date.now() }] });
+    setCurrentOrder(prev => ({ ...prev, [type]: [...(prev[type] || []), { x, y, id: Date.now() }] }));
   };
 
-  if (authError) return <div className="p-8 text-center text-red-600 font-bold">Error: {authError}</div>;
-  if (!user) return <div className="flex items-center justify-center h-screen font-bold text-xl text-blue-900 animate-pulse">Conectando al taller...</div>;
+  if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Cargando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
@@ -349,17 +241,12 @@ export default function App() {
           </div>
           <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
             {orders.length === 0 ? <div className="p-12 text-center text-gray-400">No hay órdenes registradas.</div> : 
-              <div className="divide-y divide-gray-100">
-                {orders.map((o) => (
+              <div className="divide-y divide-gray-100">{orders.map(o => (
                   <div key={o.id} onClick={() => { setCurrentOrder(o); setView('form'); }} className="p-4 hover:bg-blue-50 cursor-pointer flex justify-between items-center">
-                    <div>
-                      <div className="font-bold text-lg">{o.brand} {o.model} <span className="text-gray-400 text-sm">#{o.orderNumber}</span></div>
-                      <div className="text-sm text-gray-500">{o.clientName} • {o.plates}</div>
-                    </div>
+                    <div><div className="font-bold text-lg">{o.brand} {o.model} <span className="text-gray-400 text-sm">#{o.orderNumber}</span></div><div className="text-sm text-gray-500">{o.clientName} • {o.plates}</div></div>
                     <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-bold">{o.status === 'active' ? 'En Taller' : 'Entregado'}</span>
                   </div>
-                ))}
-              </div>
+              ))}</div>
             }
           </div>
         </div>
@@ -373,15 +260,8 @@ export default function App() {
           </div>
           <div className="max-w-[21cm] mx-auto bg-white p-8 print:p-0">
             <div className="flex border-2 border-blue-900 rounded-lg p-2 mb-2">
-              <div className="w-1/3 text-[10px] leading-tight">
-                <div className="text-blue-900 font-black italic text-xl flex items-center gap-2"><Car className="w-8 h-8" /><div><div>MULTISERVICIO</div><div className="text-sm font-normal">AUTOMOTRIZ ARREDONDO</div></div></div>
-                <div className="mt-2 text-gray-600">Quevedo 2708 Col. Puerto México<br/>Coatzacoalcos, Ver.<br/>Tels: (921) 21 3 77 98 / 921 569 6614<br/>servicioarredondo@prodigy.net.mx</div>
-              </div>
-              <div className="w-1/3 text-center pt-2">
-                <h2 className="text-xl font-bold uppercase border-b-2 border-blue-900 inline-block mb-1">Orden de Trabajo</h2>
-                <div className="text-red-600 font-mono text-2xl font-bold">No. {currentOrder.orderNumber}</div>
-                <div className="text-[9px] text-gray-500">Horario: L-V 8:30 a 18:30 | Sáb 8:30 a 14:00</div>
-              </div>
+              <div className="w-1/3 text-[10px] leading-tight"><div className="text-blue-900 font-black italic text-xl flex items-center gap-2"><Car className="w-8 h-8" /><div><div>MULTISERVICIO</div><div className="text-sm font-normal">AUTOMOTRIZ ARREDONDO</div></div></div><div className="mt-2 text-gray-600">Quevedo 2708 Col. Puerto México<br/>Coatzacoalcos, Ver.<br/>Tels: (921) 21 3 77 98 / 921 569 6614</div></div>
+              <div className="w-1/3 text-center pt-2"><h2 className="text-xl font-bold uppercase border-b-2 border-blue-900 inline-block mb-1">Orden de Trabajo</h2><div className="text-red-600 font-mono text-2xl font-bold">No. {currentOrder.orderNumber}</div><div className="text-[9px] text-gray-500">Horario: L-V 8:30 a 18:30 | Sáb 8:30 a 14:00</div></div>
               <div className="w-1/3 text-[10px] pl-2 border-l border-gray-200 flex flex-col justify-center space-y-1">
                 <InputRow label="Fecha" value={new Date().toLocaleDateString()} readOnly />
                 <InputRow label="Aseguradora" value={currentOrder.insurer} onChange={(v) => setCurrentOrder({...currentOrder, insurer: v})} />
@@ -390,7 +270,6 @@ export default function App() {
                 <InputRow label="Deducible" value={currentOrder.deductible} onChange={(v) => setCurrentOrder({...currentOrder, deductible: v})} />
               </div>
             </div>
-
             <div className="grid grid-cols-4 gap-x-2 gap-y-1 text-[11px] border border-gray-300 p-2 rounded mb-2">
               <InputRow label="Marca" value={currentOrder.brand} onChange={(v) => setCurrentOrder({...currentOrder, brand: v})} />
               <InputRow label="Modelo" value={currentOrder.model} onChange={(v) => setCurrentOrder({...currentOrder, model: v})} />
@@ -418,38 +297,23 @@ export default function App() {
                 <InputRow className="col-span-2" label="Dirección" value={currentOrder.clientAddress} onChange={(v) => setCurrentOrder({...currentOrder, clientAddress: v})} fullWidth />
               </div>
             </div>
-
             <div className="mb-2 border border-gray-300 text-[9px]">
               <div className="bg-blue-900 text-white text-center font-bold uppercase py-0.5">Inventario del Vehículo</div>
               <div className="grid grid-cols-5">
-                <div className="col-span-2 border-r border-gray-300">
-                  <div className="font-bold bg-gray-100 p-1 border-b">INTERIORES</div>
-                  {INVENTORY_GROUPS.interiores.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [i]: v}})} />)}
-                </div>
-                <div className="col-span-2 border-r border-gray-300">
-                  <div className="font-bold bg-gray-100 p-1 border-b">MOTOR / LLANTAS</div>
-                  {INVENTORY_GROUPS.motor.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [i]: v}})} />)}
-                  <div className="bg-gray-100 font-bold p-1 border-y">LLANTAS</div>
-                  {INVENTORY_GROUPS.llantas.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [i]: v}})} />)}
-                </div>
-                <div className="col-span-1">
-                  <div className="font-bold bg-gray-100 p-1 border-b">EXTERIOR</div>
-                  {INVENTORY_GROUPS.exterior.map(i => <div key={i} className="flex justify-between px-1 border-b h-5 items-center"><span className="truncate">{i}</span><SimpleStateToggle value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [i]: v}})} /></div>)}
-                  <div className="bg-gray-100 font-bold p-1 border-y">CAJUELA</div>
-                  {INVENTORY_GROUPS.cajuela.map(i => <div key={i} className="flex justify-between px-1 border-b h-5 items-center"><span className="truncate">{i}</span><SimpleStateToggle value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [i]: v}})} /></div>)}
-                </div>
+                <div className="col-span-2 border-r border-gray-300"><div className="font-bold bg-gray-100 p-1 border-b">INTERIORES</div>{INVENTORY_GROUPS.interiores.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder(prev => ({...prev, inventory: {...prev.inventory, [i]: v}}))} />)}</div>
+                <div className="col-span-2 border-r border-gray-300"><div className="font-bold bg-gray-100 p-1 border-b">MOTOR / LLANTAS</div>{INVENTORY_GROUPS.motor.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder(prev => ({...prev, inventory: {...prev.inventory, [i]: v}}))} />)}<div className="bg-gray-100 font-bold p-1 border-y">LLANTAS</div>{INVENTORY_GROUPS.llantas.map(i => <InventoryItem key={i} label={i} value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder(prev => ({...prev, inventory: {...prev.inventory, [i]: v}}))} />)}</div>
+                <div className="col-span-1"><div className="font-bold bg-gray-100 p-1 border-b">EXTERIOR</div>{INVENTORY_GROUPS.exterior.map(i => <div key={i} className="flex justify-between px-1 border-b h-5 items-center"><span className="truncate">{i}</span><SimpleStateToggle value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder(prev => ({...prev, inventory: {...prev.inventory, [i]: v}}))} /></div>)}<div className="bg-gray-100 font-bold p-1 border-y">CAJUELA</div>{INVENTORY_GROUPS.cajuela.map(i => <div key={i} className="flex justify-between px-1 border-b h-5 items-center"><span className="truncate">{i}</span><SimpleStateToggle value={currentOrder.inventory[i]} onChange={(v) => setCurrentOrder(prev => ({...prev, inventory: {...prev.inventory, [i]: v}}))} /></div>)}</div>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4 h-48 mb-2">
               <div className="flex flex-col border border-gray-300 rounded p-1">
                 <div className="text-[10px] font-bold bg-red-100 text-red-800 px-1 rounded mb-1 text-center">DAÑOS DEL SINIESTRO (ROJO)</div>
                 <div className="relative flex-1 cursor-crosshair overflow-hidden border border-gray-100" onClick={(e) => addDamage(e, 'damages')}>
                   <CarDiagram />
-                  {(currentOrder.damages || []).map((d) => <div key={d.id} className="absolute text-red-600 font-bold transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{left: `${d.x}%`, top: `${d.y}%`}}>❌</div>)}
+                  {(currentOrder.damages || []).map(d => <div key={d.id} className="absolute text-red-600 font-bold transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{left: `${d.x}%`, top: `${d.y}%`}}>❌</div>)}
                 </div>
                 <div className="flex justify-between items-end mt-1 h-12">
-                  <textarea className="w-full h-full text-[10px] bg-transparent resize-none border-t border-gray-200 outline-none p-1" placeholder="Descripción de daños..." value={currentOrder.damagesDescription} onChange={(e) => setCurrentOrder({...currentOrder, damagesDescription: e.target.value})} />
+                  <textarea className="w-full h-full text-[10px] bg-transparent resize-none border-t border-gray-200 outline-none p-1" placeholder="Descripción..." value={currentOrder.damagesDescription} onChange={(e) => setCurrentOrder({...currentOrder, damagesDescription: e.target.value})} />
                   <button onClick={() => setCurrentOrder({...currentOrder, damages: []})} className="text-red-500 text-[10px] px-1 print:hidden hover:bg-red-50 rounded">Borrar</button>
                 </div>
               </div>
@@ -457,7 +321,7 @@ export default function App() {
                 <div className="text-[10px] font-bold bg-yellow-100 text-yellow-800 px-1 rounded mb-1 text-center">DAÑOS PREEXISTENTES (AMARILLO)</div>
                 <div className="relative flex-1 cursor-crosshair overflow-hidden border border-gray-100" onClick={(e) => addDamage(e, 'preexistingDamages')}>
                   <CarDiagram />
-                  {(currentOrder.preexistingDamages || []).map((d) => <div key={d.id} className="absolute text-orange-500 font-bold transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{left: `${d.x}%`, top: `${d.y}%`}}>⚠️</div>)}
+                  {(currentOrder.preexistingDamages || []).map(d => <div key={d.id} className="absolute text-orange-500 font-bold transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{left: `${d.x}%`, top: `${d.y}%`}}>⚠️</div>)}
                 </div>
                 <div className="flex justify-between items-end mt-1 h-12">
                   <textarea className="w-full h-full text-[10px] bg-transparent resize-none border-t border-gray-200 outline-none p-1" placeholder="Observaciones..." value={currentOrder.observations} onChange={(e) => setCurrentOrder({...currentOrder, observations: e.target.value})} />
@@ -465,24 +329,17 @@ export default function App() {
                 </div>
               </div>
             </div>
-
             <div className="mt-4 border-t-2 border-gray-800 pt-2 flex justify-center">
               <div className="w-64 text-center">
                 <div className="h-20 border-b border-gray-400 mb-1 flex items-end justify-center">
                   {currentOrder.clientSignature ? (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      <img src={currentOrder.clientSignature} className="max-h-full" alt="Firma" />
-                      <button onClick={() => setCurrentOrder({...currentOrder, clientSignature: ''})} className="absolute top-0 right-0 p-1 bg-gray-100 rounded-full print:hidden"><X size={12}/></button>
-                    </div>
+                    <div className="relative w-full h-full flex items-center justify-center"><img src={currentOrder.clientSignature} className="max-h-full" alt="Firma" /><button onClick={() => setCurrentOrder({...currentOrder, clientSignature: ''})} className="absolute top-0 right-0 p-1 bg-gray-100 rounded-full print:hidden"><X size={12}/></button></div>
                   ) : <SignaturePad onSave={(s) => setCurrentOrder({...currentOrder, clientSignature: s})} />}
                 </div>
                 <div className="font-bold text-[10px]">FIRMA DE CONFORMIDAD</div>
-                <div className="text-[8px] text-gray-500 text-justify leading-tight mt-1">
-                  Reconozco que el vehículo presenta los daños descritos y autorizo la revisión. La empresa no se hace responsable por objetos olvidados.
-                </div>
+                <div className="text-[8px] text-gray-500 text-justify leading-tight mt-1">Reconozco que el vehículo presenta los daños descritos y autorizo la revisión. La empresa no se hace responsable por objetos olvidados.</div>
               </div>
             </div>
-
           </div>
         </div>
       )}
