@@ -44,7 +44,7 @@ const PrintStyles = () => (
   `}</style>
 );
 
-// --- VARIABLES GLOBALES (Tipadas como 'any' para evitar bloqueos) ---
+// --- VARIABLES GLOBALES (Tipadas como 'any') ---
 // @ts-ignore
 const globalConfig: any = typeof __firebase_config !== 'undefined' ? __firebase_config : undefined;
 // @ts-ignore
@@ -53,7 +53,6 @@ const globalAppId: any = typeof __app_id !== 'undefined' ? __app_id : undefined;
 const globalToken: any = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
 
 // --- CONFIGURACIÓN HÍBRIDA ---
-// AQUÍ ESTÁ LA SOLUCIÓN: Definimos explícitamente el tipo como 'any'
 let firebaseConfig: any;
 let collectionRefBuilder: any; 
 
@@ -95,7 +94,7 @@ const INVENTORY_GROUPS = {
   llantas: ["Marca", "Vida Util %", "Rines", "Tapones"]
 };
 
-// --- COMPONENTES (Todos reciben 'props: any' para máxima flexibilidad) ---
+// --- COMPONENTES (Tipados flexibles) ---
 
 function InputRow({ label, value, onChange = (v: any) => {}, readOnly = false, fullWidth = false, className = '' }: any) { 
   return (<div className={`flex items-center gap-1 ${fullWidth ? 'w-full' : ''} ${className}`}><span className="font-bold text-gray-700 whitespace-nowrap">{label}:</span>{readOnly ? (<span className="border-b border-gray-300 px-1 flex-1 truncate">{value}</span>) : (<input className="border-b border-gray-300 px-1 outline-none focus:border-blue-500 bg-transparent flex-1 w-full" value={value || ''} onChange={(e) => onChange(e.target.value)} />)}</div>); 
@@ -169,8 +168,9 @@ export default function App() {
     const q = query(ordersCollection, orderBy('createdAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(data as any[]);
+      // AQUÍ ESTABA EL ERROR: Forzamos (doc.data() as any)
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      setOrders(data);
     }, (error) => {
       console.error("Error datos:", error);
       alert("Error leyendo datos: " + error.message);
