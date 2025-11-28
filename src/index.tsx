@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 
 // --- ESTILOS DE IMPRESIÓN INCRUSTADOS ---
-// Esto asegura que la impresión funcione sin depender de archivos externos
 const PrintStyles = () => (
   <style>{`
     @media print {
@@ -115,9 +114,11 @@ function CarDiagram() { return (<div className="w-full h-full flex items-center 
 
 // --- APP PRINCIPAL ---
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [currentOrder, setCurrentOrder] = useState(null);
+  // CORRECCIÓN: Usamos <any> para permitir que 'user' reciba objetos de Firebase sin error
+  const [user, setUser] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [currentOrder, setCurrentOrder] = useState<any>(null);
+  
   const [view, setView] = useState('list');
   const [isPrinting, setIsPrinting] = useState(false);
   const [authError, setAuthError] = useState(null);
@@ -137,6 +138,7 @@ export default function App() {
       }
     };
     initAuth();
+    // Ahora setUser acepta el objeto usuario de Firebase sin errores
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
@@ -149,7 +151,6 @@ export default function App() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       // @ts-ignore
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // @ts-ignore
       setOrders(data);
     }, (error) => {
       console.error("Error datos:", error);
