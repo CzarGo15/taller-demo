@@ -178,12 +178,11 @@ setView('form');
 const saveOrder = async () => {
 if (!user || !currentOrder) return;
 try {
-const colRef = collection(db, COLLECTION_NAME);
 const dataToSave = JSON.parse(JSON.stringify(currentOrder));
 if (currentOrder.id) {
-await updateDoc(doc(colRef, currentOrder.id), dataToSave);
+await updateDoc(doc(db, COLLECTION_NAME, currentOrder.id), dataToSave);
 } else {
-await addDoc(colRef, { ...dataToSave, createdAt: serverTimestamp() });
+await addDoc(collection(db, COLLECTION_NAME), { ...dataToSave, createdAt: serverTimestamp() });
 }
 alert('Orden guardada!');
 setView('list');
@@ -199,11 +198,10 @@ const addDamage = (e, type) => {
 const rect = e.currentTarget.getBoundingClientRect();
 const x = ((e.clientX - rect.left) / rect.width) * 100;
 const y = ((e.clientY - rect.top) / rect.height) * 100;
-const list = currentOrder[type] || [];
-setCurrentOrder({ ...currentOrder, [type]: [...list, { x, y, id: Date.now() }] });
+setCurrentOrder(prev => ({ ...prev, [type]: [...(prev[type] || []), { x, y, id: Date.now() }] }));
 };
 
-if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Cargando...</div>;
+if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Cargando sistema...</div>;
 
 return (
 <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
