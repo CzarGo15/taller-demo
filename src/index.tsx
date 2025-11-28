@@ -30,7 +30,7 @@ import {
   PenTool
 } from 'lucide-react';
 
-// --- ESTILOS DE IMPRESIÓN INCRUSTADOS ---
+// --- ESTILOS DE IMPRESIÓN ---
 const PrintStyles = () => (
   <style>{`
     @media print {
@@ -44,19 +44,18 @@ const PrintStyles = () => (
   `}</style>
 );
 
-// --- VARIABLES GLOBALES DEL ENTORNO ---
+// --- VARIABLES GLOBALES (Tipadas como 'any' para evitar bloqueos) ---
 // @ts-ignore
-const globalConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : undefined;
+const globalConfig: any = typeof __firebase_config !== 'undefined' ? __firebase_config : undefined;
 // @ts-ignore
-const globalAppId = typeof __app_id !== 'undefined' ? __app_id : undefined;
+const globalAppId: any = typeof __app_id !== 'undefined' ? __app_id : undefined;
 // @ts-ignore
-const globalToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+const globalToken: any = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
 
 // --- CONFIGURACIÓN HÍBRIDA ---
-// @ts-ignore
-let firebaseConfig;
-// @ts-ignore
-let collectionRefBuilder; 
+// AQUÍ ESTÁ LA SOLUCIÓN: Definimos explícitamente el tipo como 'any'
+let firebaseConfig: any;
+let collectionRefBuilder: any; 
 
 if (globalConfig) {
   // Entorno Chat
@@ -65,8 +64,7 @@ if (globalConfig) {
   } catch (e) { firebaseConfig = {}; }
   const internalAppId = globalAppId || 'default-id';
   
-  // @ts-ignore
-  collectionRefBuilder = (dbInstance) => 
+  collectionRefBuilder = (dbInstance: any) => 
     collection(dbInstance, 'artifacts', internalAppId, 'public', 'data', 'taller_ordenes');
 } else {
   // Entorno Producción - TUS LLAVES
@@ -79,8 +77,8 @@ if (globalConfig) {
     appId: "1:1019036287793:web:125da6f4009275c491e610",
     measurementId: "G-RCMS88889V"
   };
-  // @ts-ignore
-  collectionRefBuilder = (dbInstance) => 
+  
+  collectionRefBuilder = (dbInstance: any) => 
     collection(dbInstance, 'taller-arredondo-ordenes');
 }
 
@@ -97,20 +95,44 @@ const INVENTORY_GROUPS = {
   llantas: ["Marca", "Vida Util %", "Rines", "Tapones"]
 };
 
-// --- COMPONENTES ---
-// CORRECCIÓN: onChange ahora acepta un argumento 'v' para calmar a TypeScript (TS2554)
-// @ts-ignore
-function InputRow({ label, value, onChange = (v) => {}, readOnly = false, fullWidth = false, className = '' }) { 
+// --- COMPONENTES (Todos reciben 'props: any' para máxima flexibilidad) ---
+
+function InputRow({ label, value, onChange = (v: any) => {}, readOnly = false, fullWidth = false, className = '' }: any) { 
   return (<div className={`flex items-center gap-1 ${fullWidth ? 'w-full' : ''} ${className}`}><span className="font-bold text-gray-700 whitespace-nowrap">{label}:</span>{readOnly ? (<span className="border-b border-gray-300 px-1 flex-1 truncate">{value}</span>) : (<input className="border-b border-gray-300 px-1 outline-none focus:border-blue-500 bg-transparent flex-1 w-full" value={value || ''} onChange={(e) => onChange(e.target.value)} />)}</div>); 
 }
-// @ts-ignore
-function BooleanCheck({ label, checked, onChange }) { return (<div className="flex items-center gap-1 cursor-pointer" onClick={() => onChange(!checked)}><div className={`w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}`}>{checked && <div className="w-2 h-2 bg-blue-900" />}</div><span>{label}</span></div>); }
-// @ts-ignore
-function InventoryItem({ label, value, onChange }) { return (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5"><span className="truncate w-24">{label}</span><div className="flex gap-0.5 print:hidden"><button onClick={() => onChange('si')} className={`px-1 rounded ${value==='si'?'bg-green-200 text-green-800 font-bold': 'bg-gray-100 text-gray-400'}`}>Si</button><button onClick={() => onChange('no')} className={`px-1 rounded ${value==='no'?'bg-gray-200 text-gray-800 font-bold': 'bg-gray-100 text-gray-400'}`}>No</button><button onClick={() => onChange('mal')} className={`px-1 rounded ${value==='mal'?'bg-red-200 text-red-800 font-bold': 'bg-gray-100 text-gray-400'}`}>M</button></div><div className="hidden print:block font-bold w-6 text-center border-l border-gray-200">{value === 'si' ? 'SI' : value === 'no' ? 'NO' : value === 'mal' ? 'M' : '-'}</div></div>); }
-// @ts-ignore
-function SimpleStateToggle({ value, onChange }) { const states = [undefined, 'si', 'no', 'mal']; const labels: any = { undefined: '-', si: 'SI', no: 'NO', mal: 'M' }; const colors: any = { undefined: 'text-gray-300', si: 'text-green-600', no: 'text-gray-500', mal: 'text-red-600' }; const toggle = () => { const currIdx = states.indexOf(value); const nextIdx = (currIdx + 1) % states.length; onChange(states[nextIdx]); }; return (<div onClick={toggle} className={`cursor-pointer font-bold font-mono ${colors[value]} print:text-black`}>{labels[value] || '-'}</div>); }
-// @ts-ignore
-function SignaturePad({ onSave }) { const canvasRef = useRef<HTMLCanvasElement>(null); const [isDrawing, setIsDrawing] = useState(false); const [hasSignature, setHasSignature] = useState(false); const startDrawing = (e: any) => { const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; ctx.beginPath(); ctx.moveTo(clientX - rect.left, clientY - rect.top); setIsDrawing(true); setHasSignature(true); }; const draw = (e: any) => { if (!isDrawing) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; ctx.lineTo(clientX - rect.left, clientY - rect.top); ctx.stroke(); }; const stopDrawing = () => { setIsDrawing(false); }; const saveSignature = () => { if (!canvasRef.current) return; const dataUrl = canvasRef.current.toDataURL('image/png'); onSave(dataUrl); }; const clearSignature = () => { const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); ctx?.clearRect(0, 0, canvas.width, canvas.height); setHasSignature(false); }; useEffect(() => { const canvas = canvasRef.current; if (canvas) { canvas.width = canvas.parentElement?.offsetWidth || 300; canvas.height = 96; const ctx = canvas.getContext('2d'); if (ctx) { ctx.strokeStyle = '#000000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; } } }, []); return (<div className="w-full h-full relative group print:hidden"><div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-300 pointer-events-none text-xs flex flex-col items-center">{!hasSignature && (<><PenTool className="w-6 h-6 mb-1 opacity-50" /><span>Firmar Aquí</span></>)}</div><canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-full cursor-crosshair touch-none bg-gray-50 hover:bg-gray-100 transition-colors" />{hasSignature && (<div className="absolute top-0 right-0 flex gap-1 p-1"><button onClick={clearSignature} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200" title="Borrar"><Trash2 className="w-4 h-4" /></button><button onClick={saveSignature} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200" title="Confirmar"><CheckCircle className="w-4 h-4" /></button></div>)}</div>); }
+
+function BooleanCheck({ label, checked, onChange }: any) { 
+  return (<div className="flex items-center gap-1 cursor-pointer" onClick={() => onChange(!checked)}><div className={`w-3 h-3 border border-gray-400 flex items-center justify-center ${checked ? 'bg-blue-900 text-white' : 'bg-white'}`}>{checked && <div className="w-2 h-2 bg-blue-900" />}</div><span>{label}</span></div>); 
+}
+
+function InventoryItem({ label, value, onChange }: any) { 
+  return (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5"><span className="truncate w-24">{label}</span><div className="flex gap-0.5 print:hidden"><button onClick={() => onChange('si')} className={`px-1 rounded ${value==='si'?'bg-green-200 text-green-800 font-bold': 'bg-gray-100 text-gray-400'}`}>Si</button><button onClick={() => onChange('no')} className={`px-1 rounded ${value==='no'?'bg-gray-200 text-gray-800 font-bold': 'bg-gray-100 text-gray-400'}`}>No</button><button onClick={() => onChange('mal')} className={`px-1 rounded ${value==='mal'?'bg-red-200 text-red-800 font-bold': 'bg-gray-100 text-gray-400'}`}>M</button></div><div className="hidden print:block font-bold w-6 text-center border-l border-gray-200">{value === 'si' ? 'SI' : value === 'no' ? 'NO' : value === 'mal' ? 'M' : '-'}</div></div>); 
+}
+
+function SimpleStateToggle({ value, onChange }: any) { 
+  const states = [undefined, 'si', 'no', 'mal'];
+  const labels: any = { undefined: '-', si: 'SI', no: 'NO', mal: 'M' };
+  const colors: any = { undefined: 'text-gray-300', si: 'text-green-600', no: 'text-gray-500', mal: 'text-red-600' };
+  const toggle = () => { const currIdx = states.indexOf(value); const nextIdx = (currIdx + 1) % states.length; onChange(states[nextIdx]); }; 
+  return (<div onClick={toggle} className={`cursor-pointer font-bold font-mono ${colors[value]} print:text-black`}>{labels[value] || '-'}</div>); 
+}
+
+function SignaturePad({ onSave }: any) { 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  const startDrawing = (e: any) => { const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; ctx.beginPath(); ctx.moveTo(clientX - rect.left, clientY - rect.top); setIsDrawing(true); setHasSignature(true); }; 
+  const draw = (e: any) => { if (!isDrawing) return; const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return; const rect = canvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; ctx.lineTo(clientX - rect.left, clientY - rect.top); ctx.stroke(); }; 
+  const stopDrawing = () => { setIsDrawing(false); }; 
+  const saveSignature = () => { if (!canvasRef.current) return; const dataUrl = canvasRef.current.toDataURL('image/png'); onSave(dataUrl); }; 
+  const clearSignature = () => { const canvas = canvasRef.current; if (!canvas) return; const ctx = canvas.getContext('2d'); ctx?.clearRect(0, 0, canvas.width, canvas.height); setHasSignature(false); }; 
+  
+  useEffect(() => { const canvas = canvasRef.current; if (canvas) { canvas.width = canvas.parentElement?.offsetWidth || 300; canvas.height = 96; const ctx = canvas.getContext('2d'); if (ctx) { ctx.strokeStyle = '#000000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; } } }, []); 
+  
+  return (<div className="w-full h-full relative group print:hidden"><div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-300 pointer-events-none text-xs flex flex-col items-center">{!hasSignature && (<><PenTool className="w-6 h-6 mb-1 opacity-50" /><span>Firmar Aquí</span></>)}</div><canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-full cursor-crosshair touch-none bg-gray-50 hover:bg-gray-100 transition-colors" />{hasSignature && (<div className="absolute top-0 right-0 flex gap-1 p-1"><button onClick={clearSignature} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200" title="Borrar"><Trash2 className="w-4 h-4" /></button><button onClick={saveSignature} className="bg-green-100 text-green-600 p-1 rounded hover:bg-green-200" title="Confirmar"><CheckCircle className="w-4 h-4" /></button></div>)}</div>); 
+}
+
 function CarDiagram() { return (<div className="w-full h-full flex items-center justify-center p-2"><svg viewBox="0 0 300 200" className="w-full h-full opacity-50"><rect x="100" y="40" width="100" height="120" rx="10" fill="none" stroke="currentColor" strokeWidth="2" /><line x1="100" y1="80" x2="200" y2="80" stroke="currentColor" strokeWidth="2" /><line x1="100" y1="130" x2="200" y2="130" stroke="currentColor" strokeWidth="2" /><path d="M 110,40 L 110,10 L 190,10 L 190,40" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M 110,160 L 110,190 L 190,190 L 190,160" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M 100,50 L 50,50 L 50,150 L 100,150" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="75" cy="70" r="12" fill="none" stroke="currentColor" /><circle cx="75" cy="130" r="12" fill="none" stroke="currentColor" /><path d="M 200,50 L 250,50 L 250,150 L 200,150" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="225" cy="70" r="12" fill="none" stroke="currentColor" /><circle cx="225" cy="130" r="12" fill="none" stroke="currentColor" /><text x="150" y="30" textAnchor="middle" fontSize="10">FRENTE</text><text x="150" y="180" textAnchor="middle" fontSize="10">ATRÁS</text><text x="30" y="100" textAnchor="middle" fontSize="10" transform="rotate(-90 30,100)">IZQ</text><text x="270" y="100" textAnchor="middle" fontSize="10" transform="rotate(90 270,100)">DER</text></svg></div>); }
 
 // --- APP PRINCIPAL ---
@@ -121,7 +143,7 @@ export default function App() {
   
   const [view, setView] = useState('list');
   const [isPrinting, setIsPrinting] = useState(false);
-  const [authError, setAuthError] = useState(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -131,10 +153,9 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error Auth:", error);
-        // @ts-ignore
-        setAuthError(error.message);
+        setAuthError(error.message || "Error desconocido");
       }
     };
     initAuth();
@@ -148,12 +169,10 @@ export default function App() {
     const q = query(ordersCollection, orderBy('createdAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // @ts-ignore
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOrders(data);
+      setOrders(data as any[]);
     }, (error) => {
       console.error("Error datos:", error);
-      // @ts-ignore
       alert("Error leyendo datos: " + error.message);
     });
     
@@ -161,7 +180,6 @@ export default function App() {
   }, [user]);
 
   const createNewOrder = () => {
-    // @ts-ignore
     const newOrder = {
       orderNumber: (orders.length + 4250).toString(),
       status: 'active', createdAt: null, insurer: '', policy: '', insured: '', deductible: '', claimNumber: '',
@@ -179,17 +197,14 @@ export default function App() {
     try {
       const ordersCollection = collectionRefBuilder(db);
       const orderToSave = JSON.parse(JSON.stringify(currentOrder));
-      // @ts-ignore
       if (currentOrder.id) {
-        // @ts-ignore
         await updateDoc(doc(ordersCollection, currentOrder.id), { ...orderToSave });
       } else {
         await addDoc(ordersCollection, { ...orderToSave, createdAt: serverTimestamp() });
       }
       alert('Orden guardada correctamente');
       setView('list');
-    } catch (e) {
-      // @ts-ignore
+    } catch (e: any) {
       alert('Error al guardar: ' + e.message);
     }
   };
@@ -225,51 +240,48 @@ export default function App() {
       )}
 
       {view === 'form' && currentOrder && (
-        // @ts-ignore
         <div className={`bg-white min-h-screen ${isPrinting ? 'print-mode' : ''}`}>
           <div className="print:hidden sticky top-0 z-50 bg-white border-b shadow-md p-4 flex justify-between items-center">
             <button onClick={() => setView('list')} className="text-gray-600 hover:bg-gray-100 p-2 rounded flex gap-2 items-center"><Menu className="w-5 h-5" /> Volver</button>
             <div className="flex gap-2"><button onClick={handlePrint} className="bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-gray-800"><Printer className="w-4 h-4" /> Imprimir</button><button onClick={saveOrder} className="bg-blue-600 text-white px-6 py-2 rounded flex items-center gap-2 hover:bg-blue-700 shadow-md"><Save className="w-4 h-4" /> Guardar</button></div>
           </div>
-          {/* @ts-ignore */}
           <div className="max-w-[21cm] mx-auto bg-white p-4 md:p-8 print:p-0 print:max-w-full">
             <div className="border-2 border-blue-900 rounded-lg p-2 mb-2 flex justify-between items-start">
               <div className="w-1/3"><div className="flex items-center gap-2 text-blue-900 font-black italic text-xl"><Car className="w-8 h-8" /><div><div>MULTISERVICIO</div><div className="text-sm font-normal">AUTOMOTRIZ ARREDONDO</div></div></div><div className="text-[10px] mt-2 leading-tight text-gray-600">Quevedo 2708 Col. Puerto México<br/>Coatzacoalcos, Ver.<br/>Tels: (921) 21 3 77 98 / 921 569 6614<br/>servicioarredondo@prodigy.net.mx</div></div>
-              <div className="w-1/3 text-center pt-2"><h2 className="text-xl font-bold uppercase border-b-2 border-blue-900 inline-block mb-1">Orden de Trabajo</h2>{/* @ts-ignore */}<div className="text-red-600 font-mono text-2xl font-bold">No. {currentOrder.orderNumber}</div><div className="text-[9px] mt-1 text-gray-500">Horario: L-V 8:30 a 18:30<br/>Sáb 8:30 a 14:00</div></div>
+              <div className="w-1/3 text-center pt-2"><h2 className="text-xl font-bold uppercase border-b-2 border-blue-900 inline-block mb-1">Orden de Trabajo</h2><div className="text-red-600 font-mono text-2xl font-bold">No. {currentOrder.orderNumber}</div><div className="text-[9px] mt-1 text-gray-500">Horario: L-V 8:30 a 18:30<br/>Sáb 8:30 a 14:00</div></div>
               <div className="w-1/3 text-[10px] space-y-1 border-l pl-2">
-                {/* @ts-ignore */}<InputRow label="Fecha" value={new Date().toLocaleDateString()} readOnly />
-                {/* @ts-ignore */}<InputRow label="Aseguradora" value={currentOrder.insurer} onChange={(v) => setCurrentOrder({...currentOrder, insurer: v})} />
-                {/* @ts-ignore */}<InputRow label="Póliza" value={currentOrder.policy} onChange={(v) => setCurrentOrder({...currentOrder, policy: v})} />
-                {/* @ts-ignore */}<InputRow label="Siniestro" value={currentOrder.claimNumber} onChange={(v) => setCurrentOrder({...currentOrder, claimNumber: v})} />
-                {/* @ts-ignore */}<InputRow label="Deducible $" value={currentOrder.deductible} onChange={(v) => setCurrentOrder({...currentOrder, deductible: v})} />
+                <InputRow label="Fecha" value={new Date().toLocaleDateString()} readOnly />
+                <InputRow label="Aseguradora" value={currentOrder.insurer} onChange={(v: any) => setCurrentOrder({...currentOrder, insurer: v})} />
+                <InputRow label="Póliza" value={currentOrder.policy} onChange={(v: any) => setCurrentOrder({...currentOrder, policy: v})} />
+                <InputRow label="Siniestro" value={currentOrder.claimNumber} onChange={(v: any) => setCurrentOrder({...currentOrder, claimNumber: v})} />
+                <InputRow label="Deducible $" value={currentOrder.deductible} onChange={(v: any) => setCurrentOrder({...currentOrder, deductible: v})} />
               </div>
             </div>
-            {/* Resto del formulario simplificado para brevedad, usando la misma lógica visual */}
             <div className="grid grid-cols-4 gap-x-2 gap-y-1 text-[11px] mb-2 border border-gray-300 p-2 rounded">
-                {/* @ts-ignore */}<InputRow label="Marca" value={currentOrder.brand} onChange={(v) => setCurrentOrder({...currentOrder, brand: v})} />
-                {/* @ts-ignore */}<InputRow label="Modelo" value={currentOrder.model} onChange={(v) => setCurrentOrder({...currentOrder, model: v})} />
-                {/* @ts-ignore */}<InputRow label="Tipo" value={currentOrder.type} onChange={(v) => setCurrentOrder({...currentOrder, type: v})} />
-                {/* @ts-ignore */}<InputRow label="Color" value={currentOrder.color} onChange={(v) => setCurrentOrder({...currentOrder, color: v})} />
-                {/* @ts-ignore */}<InputRow label="Placas" value={currentOrder.plates} onChange={(v) => setCurrentOrder({...currentOrder, plates: v})} />
-                {/* @ts-ignore */}<InputRow label="No. Serie" value={currentOrder.vin} onChange={(v) => setCurrentOrder({...currentOrder, vin: v})} />
-                {/* @ts-ignore */}<InputRow label="Kilometraje" value={currentOrder.mileage} onChange={(v) => setCurrentOrder({...currentOrder, mileage: v})} />
+                <InputRow label="Marca" value={currentOrder.brand} onChange={(v: any) => setCurrentOrder({...currentOrder, brand: v})} />
+                <InputRow label="Modelo" value={currentOrder.model} onChange={(v: any) => setCurrentOrder({...currentOrder, model: v})} />
+                <InputRow label="Tipo" value={currentOrder.type} onChange={(v: any) => setCurrentOrder({...currentOrder, type: v})} />
+                <InputRow label="Color" value={currentOrder.color} onChange={(v: any) => setCurrentOrder({...currentOrder, color: v})} />
+                <InputRow label="Placas" value={currentOrder.plates} onChange={(v: any) => setCurrentOrder({...currentOrder, plates: v})} />
+                <InputRow label="No. Serie" value={currentOrder.vin} onChange={(v: any) => setCurrentOrder({...currentOrder, vin: v})} />
+                <InputRow label="Kilometraje" value={currentOrder.mileage} onChange={(v: any) => setCurrentOrder({...currentOrder, mileage: v})} />
                 <div className="col-span-1 flex items-center gap-2">
                   <span className="font-bold">Gasolina:</span>
-                  {/* @ts-ignore */}<input type="range" min="0" max="100" step="25" value={currentOrder.fuelLevel} onChange={(e) => setCurrentOrder({...currentOrder, fuelLevel: parseInt(e.target.value)})} className="w-16 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer print:hidden" />
-                  {/* @ts-ignore */}<div className="flex text-[9px] gap-1 print:flex"><span>E</span><div className="w-10 h-3 border border-gray-400 relative"><div className="h-full bg-gray-600 print:bg-black" style={{width: `${currentOrder.fuelLevel}%`}}></div></div><span>F</span></div>
+                  <input type="range" min="0" max="100" step="25" value={currentOrder.fuelLevel} onChange={(e) => setCurrentOrder({...currentOrder, fuelLevel: parseInt(e.target.value)})} className="w-16 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer print:hidden" />
+                  <div className="flex text-[9px] gap-1 print:flex"><span>E</span><div className="w-10 h-3 border border-gray-400 relative"><div className="h-full bg-gray-600 print:bg-black" style={{width: `${currentOrder.fuelLevel}%`}}></div></div><span>F</span></div>
                 </div>
                 <div className="col-span-4 flex justify-between border-t border-gray-200 pt-1 mt-1">
-                   {/* @ts-ignore */}<BooleanCheck label="Trans. Auto" checked={currentOrder.transmission === 'auto'} onChange={() => setCurrentOrder({...currentOrder, transmission: 'auto'})} />
-                   {/* @ts-ignore */}<BooleanCheck label="Trans. Std" checked={currentOrder.transmission === 'std'} onChange={() => setCurrentOrder({...currentOrder, transmission: 'std'})} />
-                   {/* @ts-ignore */}<BooleanCheck label="A/C" checked={currentOrder.ac} onChange={(v) => setCurrentOrder({...currentOrder, ac: v})} />
-                   {/* @ts-ignore */}<BooleanCheck label="Vidrios Elec." checked={currentOrder.windows === 'electricos'} onChange={() => setCurrentOrder({...currentOrder, windows: 'electricos'})} />
-                   {/* @ts-ignore */}<BooleanCheck label="Quemacocos" checked={currentOrder.sunroof} onChange={(v) => setCurrentOrder({...currentOrder, sunroof: v})} />
-                   {/* @ts-ignore */}<BooleanCheck label="Interiores Piel" checked={currentOrder.upholstery === 'piel'} onChange={() => setCurrentOrder({...currentOrder, upholstery: 'piel'})} />
+                   <BooleanCheck label="Trans. Auto" checked={currentOrder.transmission === 'auto'} onChange={() => setCurrentOrder({...currentOrder, transmission: 'auto'})} />
+                   <BooleanCheck label="Trans. Std" checked={currentOrder.transmission === 'std'} onChange={() => setCurrentOrder({...currentOrder, transmission: 'std'})} />
+                   <BooleanCheck label="A/C" checked={currentOrder.ac} onChange={(v: any) => setCurrentOrder({...currentOrder, ac: v})} />
+                   <BooleanCheck label="Vidrios Elec." checked={currentOrder.windows === 'electricos'} onChange={() => setCurrentOrder({...currentOrder, windows: 'electricos'})} />
+                   <BooleanCheck label="Quemacocos" checked={currentOrder.sunroof} onChange={(v: any) => setCurrentOrder({...currentOrder, sunroof: v})} />
+                   <BooleanCheck label="Interiores Piel" checked={currentOrder.upholstery === 'piel'} onChange={() => setCurrentOrder({...currentOrder, upholstery: 'piel'})} />
                 </div>
                 <div className="col-span-4 border-t border-gray-200 pt-1 mt-1 grid grid-cols-2 gap-2">
-                    {/* @ts-ignore */}<InputRow label="Cliente" value={currentOrder.clientName} onChange={(v) => setCurrentOrder({...currentOrder, clientName: v})} fullWidth />
-                    {/* @ts-ignore */}<InputRow label="Teléfono" value={currentOrder.clientPhone} onChange={(v) => setCurrentOrder({...currentOrder, clientPhone: v})} fullWidth />
-                    {/* @ts-ignore */}<InputRow label="Dirección" value={currentOrder.clientAddress} onChange={(v) => setCurrentOrder({...currentOrder, clientAddress: v})} fullWidth className="col-span-2" />
+                    <InputRow label="Cliente" value={currentOrder.clientName} onChange={(v: any) => setCurrentOrder({...currentOrder, clientName: v})} fullWidth />
+                    <InputRow label="Teléfono" value={currentOrder.clientPhone} onChange={(v: any) => setCurrentOrder({...currentOrder, clientPhone: v})} fullWidth />
+                    <InputRow label="Dirección" value={currentOrder.clientAddress} onChange={(v: any) => setCurrentOrder({...currentOrder, clientAddress: v})} fullWidth className="col-span-2" />
                 </div>
             </div>
 
@@ -279,12 +291,9 @@ export default function App() {
                 <div className="font-bold p-1 bg-gray-100 border-r border-b">INTERIORES</div><div className="font-bold p-1 bg-gray-100 border-r border-b text-center w-12">Edo.</div>
                 <div className="font-bold p-1 bg-gray-100 border-r border-b">MOTOR</div><div className="font-bold p-1 bg-gray-100 border-r border-b text-center w-12">Edo.</div>
                 <div className="font-bold p-1 bg-gray-100 border-b">EXTERIOR</div>
-                {/* @ts-ignore */}
-                <div className="col-span-2 border-r border-gray-300">{INVENTORY_GROUPS.interiores.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}</div>
-                {/* @ts-ignore */}
-                <div className="col-span-2 border-r border-gray-300">{INVENTORY_GROUPS.motor.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}<div className="bg-gray-100 font-bold p-1 border-t border-b">LLANTAS</div>{INVENTORY_GROUPS.llantas.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}</div>
-                {/* @ts-ignore */}
-                <div className="col-span-1">{INVENTORY_GROUPS.exterior.map(item => (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5" key={item}><span className="truncate">{item}</span><SimpleStateToggle value={currentOrder.inventory[item]} onChange={(val) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})}/></div>))}<div className="bg-gray-100 font-bold p-1 border-t border-b">CAJUELA</div>{INVENTORY_GROUPS.cajuela.map(item => (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5" key={item}><span className="truncate">{item}</span><SimpleStateToggle value={currentOrder.inventory[item]} onChange={(val) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})}/></div>))}</div>
+                <div className="col-span-2 border-r border-gray-300">{INVENTORY_GROUPS.interiores.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val: any) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}</div>
+                <div className="col-span-2 border-r border-gray-300">{INVENTORY_GROUPS.motor.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val: any) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}<div className="bg-gray-100 font-bold p-1 border-t border-b">LLANTAS</div>{INVENTORY_GROUPS.llantas.map(item => (<InventoryItem key={item} label={item} value={currentOrder.inventory[item]} onChange={(val: any) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})} />))}</div>
+                <div className="col-span-1">{INVENTORY_GROUPS.exterior.map(item => (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5" key={item}><span className="truncate">{item}</span><SimpleStateToggle value={currentOrder.inventory[item]} onChange={(val: any) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})}/></div>))}<div className="bg-gray-100 font-bold p-1 border-t border-b">CAJUELA</div>{INVENTORY_GROUPS.cajuela.map(item => (<div className="flex justify-between items-center px-1 border-b border-gray-100 h-5" key={item}><span className="truncate">{item}</span><SimpleStateToggle value={currentOrder.inventory[item]} onChange={(val: any) => setCurrentOrder({...currentOrder, inventory: {...currentOrder.inventory, [item]: val}})}/></div>))}</div>
               </div>
             </div>
 
@@ -292,36 +301,28 @@ export default function App() {
                 <div className="flex flex-col gap-2">
                    <div className="border border-gray-300 rounded relative bg-gray-50 h-40">
                      <div className="absolute top-0 left-0 bg-red-100 text-red-800 px-2 py-0.5 text-[9px] font-bold border-br rounded z-10 pointer-events-none">DAÑOS DEL SINIESTRO (ROJO)</div>
-                     {/* @ts-ignore */}
                      <div className="w-full h-full relative cursor-crosshair overflow-hidden" onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const x = ((e.clientX - rect.left) / rect.width) * 100; const y = ((e.clientY - rect.top) / rect.height) * 100; setCurrentOrder({...currentOrder, damages: [...currentOrder.damages, { x, y, id: Date.now() }]}); }}>
                           <CarDiagram />
-                          {/* @ts-ignore */}
-                          {currentOrder.damages.map(d => (<div key={d.id} className="absolute text-red-600 font-bold transform -translate-x-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ left: `${d.x}%`, top: `${d.y}%` }}>❌</div>))}
+                          {currentOrder.damages.map((d: any) => (<div key={d.id} className="absolute text-red-600 font-bold transform -translate-x-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ left: `${d.x}%`, top: `${d.y}%` }}>❌</div>))}
                      </div>
-                     {/* @ts-ignore */}
                      <button onClick={(e) => { e.stopPropagation(); setCurrentOrder({...currentOrder, damages: []}); }} className="absolute bottom-1 right-1 p-0.5 px-1 bg-red-100 text-red-600 rounded text-[8px] hover:bg-red-200 print:hidden z-20">Limpiar</button>
                    </div>
                    <div className="border border-gray-300 rounded p-1 h-20">
                      <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Descripción de Daños (Siniestro)</div>
-                     {/* @ts-ignore */}
                      <textarea className="w-full h-[calc(100%-1.2rem)] bg-transparent resize-none text-[10px] outline-none" value={currentOrder.damagesDescription} onChange={e => setCurrentOrder({...currentOrder, damagesDescription: e.target.value})} />
                    </div>
                 </div>
                 <div className="flex flex-col gap-2">
                    <div className="border border-gray-300 rounded relative bg-gray-50 h-40">
                      <div className="absolute top-0 left-0 bg-yellow-100 text-yellow-800 px-2 py-0.5 text-[9px] font-bold border-br rounded z-10 pointer-events-none">DAÑOS PREEXISTENTES (AMARILLO)</div>
-                     {/* @ts-ignore */}
                      <div className="w-full h-full relative cursor-crosshair overflow-hidden" onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const x = ((e.clientX - rect.left) / rect.width) * 100; const y = ((e.clientY - rect.top) / rect.height) * 100; const currentPre = currentOrder.preexistingDamages || []; setCurrentOrder({...currentOrder, preexistingDamages: [...currentPre, { x, y, id: Date.now() }]}); }}>
                           <CarDiagram />
-                          {/* @ts-ignore */}
-                          {(currentOrder.preexistingDamages || []).map(d => (<div key={d.id} className="absolute text-orange-500 font-bold transform -translate-x-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ left: `${d.x}%`, top: `${d.y}%` }}>⚠️</div>))}
+                          {(currentOrder.preexistingDamages || []).map((d: any) => (<div key={d.id} className="absolute text-orange-500 font-bold transform -translate-x-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ left: `${d.x}%`, top: `${d.y}%` }}>⚠️</div>))}
                      </div>
-                     {/* @ts-ignore */}
                      <button onClick={(e) => { e.stopPropagation(); setCurrentOrder({...currentOrder, preexistingDamages: []}); }} className="absolute bottom-1 right-1 p-0.5 px-1 bg-yellow-100 text-yellow-700 rounded text-[8px] hover:bg-yellow-200 print:hidden z-20">Limpiar</button>
                    </div>
                    <div className="border border-gray-300 rounded p-1 h-20">
                      <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Daños Preexistentes / Observaciones</div>
-                     {/* @ts-ignore */}
                      <textarea className="w-full h-[calc(100%-1.2rem)] bg-transparent resize-none text-[10px] outline-none" value={currentOrder.observations} onChange={e => setCurrentOrder({...currentOrder, observations: e.target.value})} />
                    </div>
                 </div>
@@ -330,11 +331,9 @@ export default function App() {
             <div className="mt-4 border-t-2 border-gray-800 pt-4 text-center">
                <div className="w-full max-w-sm mx-auto">
                  <div className="h-24 border-b border-gray-400 mb-1 flex items-end justify-center relative">
-                   {/* @ts-ignore */}
                    {currentOrder.clientSignature ? (
-                     // @ts-ignore
                      <div className="relative w-full h-full flex items-center justify-center"><img src={currentOrder.clientSignature} className="max-h-full max-w-full" alt="Firma Cliente" /><button onClick={() => setCurrentOrder({...currentOrder, clientSignature: ''})} className="absolute top-0 right-0 p-1 bg-gray-200 rounded text-xs print:hidden hover:bg-gray-300"><X className="w-4 h-4" /></button></div>
-                   ) : (<SignaturePad onSave={(signature) => setCurrentOrder({...currentOrder, clientSignature: signature})} />)}
+                   ) : (<SignaturePad onSave={(signature: any) => setCurrentOrder({...currentOrder, clientSignature: signature})} />)}
                  </div>
                  <div className="font-bold text-[11px]">FIRMA DE CONFORMIDAD CLIENTE</div>
                  <div className="text-[9px] text-gray-400 mt-1 text-justify leading-tight">Reconozco que el vehículo presenta los daños descritos y autorizo la revisión. La empresa no se hace responsable por objetos olvidados no inventariados.</div>
