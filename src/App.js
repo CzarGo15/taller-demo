@@ -21,6 +21,7 @@ import {
   Save, Printer, Car, Plus, Search, CheckCircle, Trash2, Menu, X, PenTool 
 } from 'lucide-react';
 
+// --- ESTILOS ---
 const PrintStyles = () => (
   <style>{`
     @media print {
@@ -34,24 +35,42 @@ const PrintStyles = () => (
   `}</style>
 );
 
-// CONFIGURACIÓN DIRECTA
-const firebaseConfig = {
-  apiKey: "AIzaSyC8gfIHJ1yrF0BYo8eIxcc-3YWHn3jjong",
-  authDomain: "desayunos-685c6.firebaseapp.com",
-  projectId: "desayunos-685c6",
-  storageBucket: "desayunos-685c6.firebasestorage.app",
-  messagingSenderId: "1019036287793",
-  appId: "1:1019036287793:web:125da6f4009275c491e610",
-  measurementId: "G-RCMS88889V"
-};
+// --- CONFIGURACIÓN ---
+// Detectar variables globales de forma segura en JS
+const globalConfig = typeof window !== 'undefined' && window.__firebase_config ? JSON.parse(window.__firebase_config) : undefined;
+const globalAppId = typeof window !== 'undefined' && window.__app_id ? window.__app_id : undefined;
+const globalToken = typeof window !== 'undefined' && window.__initial_auth_token ? window.__initial_auth_token : undefined;
+
+let firebaseConfig;
+let collectionName;
+
+if (globalConfig) {
+  // Entorno Chat
+  firebaseConfig = globalConfig;
+  const internalAppId = globalAppId || 'default-id';
+  // Ruta especial para vista previa
+  collectionName = `artifacts/${internalAppId}/public/data/taller_ordenes`;
+} else {
+  // Entorno Producción (TUS LLAVES)
+  firebaseConfig = {
+    apiKey: "AIzaSyC8gfIHJ1yrF0BYo8eIxcc-3YWHn3jjong",
+    authDomain: "desayunos-685c6.firebaseapp.com",
+    projectId: "desayunos-685c6",
+    storageBucket: "desayunos-685c6.firebasestorage.app",
+    messagingSenderId: "1019036287793",
+    appId: "1:1019036287793:web:125da6f4009275c491e610",
+    measurementId: "G-RCMS88889V"
+  };
+  collectionName = 'taller-arredondo-ordenes';
+}
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const COLLECTION_NAME = 'taller-arredondo-ordenes';
 
-// COMPONENTES UI
-function InputRow({ label, value, onChange = () => {}, readOnly = false, fullWidth = false }) { 
+// --- COMPONENTES ---
+
+function InputRow({ label, value, onChange, readOnly = false, fullWidth = false }) { 
   return (
     <div className={`flex items-center gap-1 ${fullWidth ? 'w-full' : ''}`}>
       <span className="font-bold text-gray-700 whitespace-nowrap">{label}:</span>
@@ -107,32 +126,9 @@ function SimpleStateToggle({ value, onChange }) {
   return (<div onClick={toggle} className={`cursor-pointer font-bold font-mono ${colors[value]} print:text-black`}>{labels[value] || '-'}</div>); 
 }
 
-function CarDiagram() { 
-  return (
-    <div className="w-full h-full flex items-center justify-center p-2 pointer-events-none">
-      <svg viewBox="0 0 300 200" className="w-full h-full opacity-50">
-        <rect x="100" y="40" width="100" height="120" rx="10" fill="none" stroke="currentColor" strokeWidth="2" />
-        <line x1="100" y1="80" x2="200" y2="80" stroke="currentColor" strokeWidth="2" />
-        <line x1="100" y1="130" x2="200" y2="130" stroke="currentColor" strokeWidth="2" />
-        <path d="M 110,40 L 110,10 L 190,10 L 190,40" fill="none" stroke="currentColor" strokeWidth="2" />
-        <path d="M 110,160 L 110,190 L 190,190 L 190,160" fill="none" stroke="currentColor" strokeWidth="2" />
-        <path d="M 100,50 L 50,50 L 50,150 L 100,150" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="75" cy="70" r="12" fill="none" stroke="currentColor" />
-        <circle cx="75" cy="130" r="12" fill="none" stroke="currentColor" />
-        <path d="M 200,50 L 250,50 L 250,150 L 200,150" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="225" cy="70" r="12" fill="none" stroke="currentColor" />
-        <circle cx="225" cy="130" r="12" fill="none" stroke="currentColor" />
-        <text x="150" y="30" textAnchor="middle" fontSize="10">FRENTE</text>
-        <text x="150" y="180" textAnchor="middle" fontSize="10">ATRÁS</text>
-        <text x="30" y="100" textAnchor="middle" fontSize="10" transform="rotate(-90 30,100)">IZQ</text>
-        <text x="270" y="100" textAnchor="middle" fontSize="10" transform="rotate(90 270,100)">DER</text>
-      </svg>
-    </div>
-  ); 
-}
-
 function SignaturePad({ onSave }) { 
   const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
   const getCoords = (e) => {
@@ -208,6 +204,30 @@ function SignaturePad({ onSave }) {
   ); 
 }
 
+function CarDiagram() { 
+  return (
+    <div className="w-full h-full flex items-center justify-center p-2 pointer-events-none">
+      <svg viewBox="0 0 300 200" className="w-full h-full opacity-50">
+        <rect x="100" y="40" width="100" height="120" rx="10" fill="none" stroke="currentColor" strokeWidth="2" />
+        <line x1="100" y1="80" x2="200" y2="80" stroke="currentColor" strokeWidth="2" />
+        <line x1="100" y1="130" x2="200" y2="130" stroke="currentColor" strokeWidth="2" />
+        <path d="M 110,40 L 110,10 L 190,10 L 190,40" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M 110,160 L 110,190 L 190,190 L 190,160" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M 100,50 L 50,50 L 50,150 L 100,150" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="75" cy="70" r="12" fill="none" stroke="currentColor" />
+        <circle cx="75" cy="130" r="12" fill="none" stroke="currentColor" />
+        <path d="M 200,50 L 250,50 L 250,150 L 200,150" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="225" cy="70" r="12" fill="none" stroke="currentColor" />
+        <circle cx="225" cy="130" r="12" fill="none" stroke="currentColor" />
+        <text x="150" y="30" textAnchor="middle" fontSize="10">FRENTE</text>
+        <text x="150" y="180" textAnchor="middle" fontSize="10">ATRÁS</text>
+        <text x="30" y="100" textAnchor="middle" fontSize="10" transform="rotate(-90 30,100)">IZQ</text>
+        <text x="270" y="100" textAnchor="middle" fontSize="10" transform="rotate(90 270,100)">DER</text>
+      </svg>
+    </div>
+  ); 
+}
+
 const INVENTORY_GROUPS = {
   interiores: ["Tablero", "Func. Indicadores", "Func. A/C", "Controles A/C", "Cenicero", "Encendedor", "Guantera", "Retrovisor", "Luz Interior", "Viseras", "Claxon", "Equipo Audio Orig.", "Equipo Audio Adap.", "Alarma", "Bocinas", "Tapetes", "Tapicería", "Cielo", "Cinturones"],
   motor: ["Batería", "Tapón Radiador", "Radiador", "Tapón Aceite", "Bandas", "Bayoneta Motor", "Bayoneta Transm.", "Purificador", "Cables Bujías", "Depósito Agua", "Liq. Frenos", "Computadora"],
@@ -216,25 +236,53 @@ const INVENTORY_GROUPS = {
   llantas: ["Marca", "Vida Util %", "Rines", "Tapones"]
 };
 
+// --- APP PRINCIPAL ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [view, setView] = useState('list');
   const [isPrinting, setIsPrinting] = useState(false);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    signInAnonymously(auth).catch(console.error);
-    return onAuthStateChanged(auth, setUser);
+    const initAuth = async () => {
+      try {
+        if (globalToken) {
+          await signInWithCustomToken(auth, globalToken);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Error Auth:", error);
+        setAuthError(error.message);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
+    
+    // Usar colección dinámica o fija
+    let colRef;
+    if (collectionName.startsWith('artifacts')) {
+       colRef = collection(db, ...collectionName.split('/'));
+    } else {
+       colRef = collection(db, collectionName);
+    }
+
+    const q = query(colRef, orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setOrders(loadedOrders);
+    }, (error) => {
+      console.error("Error datos:", error);
+      alert("Error leyendo datos: " + error.message);
     });
+    
     return () => unsubscribe();
   }, [user]);
 
@@ -254,14 +302,20 @@ export default function App() {
   const saveOrder = async () => {
     if (!user || !currentOrder) return;
     try {
-      const colRef = collection(db, COLLECTION_NAME);
+      let colRef;
+      if (collectionName.startsWith('artifacts')) {
+         colRef = collection(db, ...collectionName.split('/'));
+      } else {
+         colRef = collection(db, collectionName);
+      }
+
       const dataToSave = JSON.parse(JSON.stringify(currentOrder));
       if (currentOrder.id) {
         await updateDoc(doc(colRef, currentOrder.id), dataToSave);
       } else {
         await addDoc(colRef, { ...dataToSave, createdAt: serverTimestamp() });
       }
-      alert('Orden guardada!');
+      alert('Orden guardada correctamente');
       setView('list');
     } catch (e) {
       alert('Error al guardar: ' + e.message);
@@ -281,7 +335,8 @@ export default function App() {
     setCurrentOrder({ ...currentOrder, [type]: [...list, { x, y, id: Date.now() }] });
   };
 
-  if (!user) return <div className="h-screen flex items-center justify-center font-bold text-xl text-blue-800">Conectando...</div>;
+  if (authError) return <div className="p-8 text-center text-red-600 font-bold">Error: {authError}</div>;
+  if (!user) return <div className="flex items-center justify-center h-screen font-bold text-xl text-blue-900 animate-pulse">Conectando al taller...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
