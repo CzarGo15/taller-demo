@@ -53,7 +53,6 @@ const globalAppId = typeof __app_id !== 'undefined' ? __app_id : undefined;
 const globalToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
 
 // --- CONFIGURACIÓN HÍBRIDA ---
-// CORRECCIÓN: Definimos explícitamente el tipo 'any' para evitar errores TS7005
 let firebaseConfig: any;
 let collectionRefBuilder: any; 
 
@@ -96,8 +95,9 @@ const INVENTORY_GROUPS = {
 };
 
 // --- COMPONENTES ---
+// CORRECCIÓN: Agregamos "onChange = () => {}" para que sea opcional y no falle en campos de solo lectura
 // @ts-ignore
-function InputRow({ label, value, onChange, readOnly = false, fullWidth = false, className = '' }) { 
+function InputRow({ label, value, onChange = () => {}, readOnly = false, fullWidth = false, className = '' }) { 
   return (<div className={`flex items-center gap-1 ${fullWidth ? 'w-full' : ''} ${className}`}><span className="font-bold text-gray-700 whitespace-nowrap">{label}:</span>{readOnly ? (<span className="border-b border-gray-300 px-1 flex-1 truncate">{value}</span>) : (<input className="border-b border-gray-300 px-1 outline-none focus:border-blue-500 bg-transparent flex-1 w-full" value={value || ''} onChange={(e) => onChange(e.target.value)} />)}</div>); 
 }
 // @ts-ignore
