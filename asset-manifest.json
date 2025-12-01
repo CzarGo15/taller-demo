@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/taller-demo/static/css/main.fd40f3d2.css",
-    "main.js": "/taller-demo/static/js/main.ca595c03.js",
+    "main.css": "/taller-demo/static/css/main.a839702c.css",
+    "main.js": "/taller-demo/static/js/main.a2f846a5.js",
     "index.html": "/taller-demo/index.html",
-    "main.fd40f3d2.css.map": "/taller-demo/static/css/main.fd40f3d2.css.map",
-    "main.ca595c03.js.map": "/taller-demo/static/js/main.ca595c03.js.map"
+    "main.a839702c.css.map": "/taller-demo/static/css/main.a839702c.css.map",
+    "main.a2f846a5.js.map": "/taller-demo/static/js/main.a2f846a5.js.map"
   },
   "entrypoints": [
-    "static/css/main.fd40f3d2.css",
-    "static/js/main.ca595c03.js"
+    "static/css/main.a839702c.css",
+    "static/js/main.a2f846a5.js"
   ]
 }
